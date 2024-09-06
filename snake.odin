@@ -5,9 +5,6 @@ import "core:fmt"
 import "core:math/rand"
 import "core:math"
 
-// Tick Length in seconds
-TICK_LENGTH: f32 = 0.1
-
 // Segment size in pixels
 SEGMENT_SIZE :: 10
 
@@ -39,7 +36,9 @@ random_apple_pos :: proc() -> rl.Vector2 {
 Game_State :: struct {
     player_direction: Direction,
     snake_segments: [dynamic]Segment,
-    apple_pos: rl.Vector2
+    apple_pos: rl.Vector2,
+    tick_length: f32,
+    started: bool
 }
 
 initialized_game_state :: proc() -> Game_State {
@@ -56,8 +55,10 @@ initialized_game_state :: proc() -> Game_State {
                 {250, 250},
             },
         },
-        random_apple_pos()
-    }
+        random_apple_pos(),
+        0.1,
+        false
+    },
 }
 
 main :: proc() {
@@ -71,11 +72,37 @@ main :: proc() {
     tick_timer: f32 = 0.0
 
     for !rl.WindowShouldClose() {
+        if !game_state.started {
+            // Wait for an input
+            if rl.IsKeyPressed(.UP) {
+                game_state.started = true
+                game_state.player_direction = .Up
+            }
+
+            if rl.IsKeyPressed(.DOWN) {
+                game_state.started = true
+                game_state.player_direction = .Down
+            }
+
+            if rl.IsKeyPressed(.RIGHT) {
+                game_state.started = true
+                game_state.player_direction = .Right
+            }
+
+            if rl.IsKeyPressed(.LEFT) {
+                game_state.started = true
+                game_state.player_direction = .Left
+            }
+        }
+
         rl.BeginDrawing()
         rl.ClearBackground(rl.BLUE)
 
         // INPUT
         dt := rl.GetFrameTime()
+        if !game_state.started {
+            dt = 0
+        }
         
         if rl.IsKeyPressed(.UP) && game_state.player_direction != .Down {
             game_state.player_direction = .Up
@@ -95,7 +122,7 @@ main :: proc() {
 
         // UPDATE
         tick_timer += dt
-        if tick_timer >= TICK_LENGTH {
+        if tick_timer >= game_state.tick_length {
             tick_timer = 0
 
             for i in 1..<len(game_state.snake_segments) {
@@ -120,7 +147,7 @@ main :: proc() {
                 append(&game_state.snake_segments, new_segment)
 
                 game_state.apple_pos = random_apple_pos()
-                TICK_LENGTH = max(0.05, TICK_LENGTH - 0.005)
+                game_state.tick_length = max(0.05, game_state.tick_length - 0.005)
             }
 
             // Check if going off frame, loop around
